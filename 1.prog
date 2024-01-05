@@ -1,0 +1,5 @@
+let i = 1;
+let name = "Arjun";
+let a = "Just test";
+
+print(a);
