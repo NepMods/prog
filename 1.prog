@@ -1,7 +1,8 @@
 function main(argc, argv[]) {
-    let name = "arjun";
-    i();
+    doThings();
 }
-function i() {
-    print(name);
+
+function doThings() {
+    let text = "Hello World";
+    print(text);
 }
