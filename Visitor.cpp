@@ -79,6 +79,9 @@ void Visitor::visit(const nlohmann::json& node) {
     if (type == "VAR_ADD") {
         visit_variable_defination(node);
     }
+    if(type == "AST_CONDITION") {
+        visit_condition(node);
+    }
     if (type == "VAR_GET") {
         visit_variable_visit(node);
     }
@@ -91,6 +94,39 @@ void Visitor::visit_compound(const nlohmann::json& node) {
     for (const auto& child : node["data"]) {
         visit(child);
     }
+}
+
+void Visitor::visit_condition(const nlohmann::json& node) {
+    std::ofstream outputFile("alst.json");
+    outputFile << node.dump(2);
+    outputFile.close();
+
+    std::string type =  node["value"]["data"]["type"].get<std::string>();
+    std::string value =  node["value"]["data"]["value"].get<std::string>();
+    if(type != "Number"){
+        std::cerr << "ConditionError: Soon adding Other, now Number working\n";
+        exit(1);
+    }
+    text += "global _if_block\n";
+    text += "global _end_if\n";
+
+    code += "   ; Compare 9 with 0\n";
+    code += "   mov eax, "+value+"\n";
+    code += "   cmp eax, 0\n";
+
+    code += "   ; Jump if not equal (9 is not equal to 0) true\n";
+    code += "   jne _if_block\n";
+
+    code += "   ; If the condition is false, continue here\n";
+    code += "   jmp _end_if\n";
+
+    code += "_if_block:\n";
+    for (const auto& child : node["data"]) {
+        visit(child);
+    }
+
+    code += "_end_if:\n";
+    
 }
 
 void Visitor::visit_function_defincation(const nlohmann::json& node) {

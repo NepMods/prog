@@ -15,6 +15,8 @@ public:
     nlohmann::json lexStatement();
     nlohmann::json lexID();
     nlohmann::json lex();
+    
+    nlohmann::json lex_if_condition();
 
     nlohmann::json lex_function_defination();
     nlohmann::json lex_variable_defination();
