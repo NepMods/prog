@@ -17,6 +17,39 @@ Visitor::Visitor(const nlohmann::json& mainCompound) : currentStackOffset(0) {
             "   xor edi, edi\n"\
             "   syscall\n";
 
+    text += "\nglobal print_uint32 \n";
+    text += "\nglobal print \n";
+    code += "print_int:\n"\
+            "    mov    eax, edi\n"\
+            "    mov    ecx, 0xa\n"\
+            "    push   rcx\n"\
+            "    mov    rsi, rsp\n"\
+            "    sub    rsp, 16\n"\
+            "\n"\
+            "    .toascii_digit:\n"\
+            "    xor    edx, edx\n"\
+            "    div    ecx\n"\
+            "    add    edx, '0'\n"\
+            "    dec    rsi\n"\
+            "    mov    [rsi], dl\n"\
+            "    test   eax,eax\n"\
+            "    jnz  .toascii_digit\n"\
+            "    mov    eax, 1\n"\
+            "    mov    edi, 1\n"\
+            "    lea    edx, [rsp+16 + 1]\n"\
+            "    sub    edx, esi\n"\
+            "    syscall\n"\
+            "    add  rsp, 24\n"\
+            "    ret";
+    code +=  "\nprint: \n"\
+        "   mov     rsi, rdi\n"\
+        "   mov     rdx, r8\n"\
+        "   mov     rax, 1\n"\
+        "   mov     rdi, 1\n"\
+        "   syscall\n"\
+        "   ret\n";
+
+
     visit(mainCompound);
     emit(outputFile, data);
     emit(outputFile, text);
@@ -34,7 +67,7 @@ void Visitor::emit(std::ostream& output, const std::string& instruction, const s
     output << "\n";
 }
 
-long Visitor::visit(const nlohmann::json& node) {
+void Visitor::visit(const nlohmann::json& node) {
     const std::string type = node["name"].get<std::string>();
 
     if (type == "AST_COMPOUND") {
@@ -47,12 +80,11 @@ long Visitor::visit(const nlohmann::json& node) {
         visit_variable_defination(node);
     }
     if (type == "VAR_GET") {
-        return visit_variable_visit(node);
+        visit_variable_visit(node);
     }
     if(type == "FUN_CALL") {
         visit_function_call(node);
     }
-    return 0;
 }
 
 void Visitor::visit_compound(const nlohmann::json& node) {
@@ -65,7 +97,7 @@ void Visitor::visit_function_defincation(const nlohmann::json& node) {
     auto name = node["value"].get<std::string>();
 
     text += "global _"+name+"\n";
-    code += "_"+name+":\n";
+    code += "\n_"+name+":\n";
     for (const auto& child : node["data"]) {
         visit(child);
     }
@@ -76,30 +108,36 @@ void Visitor::visit_variable_defination(const nlohmann::json& node) {
     const std::string varName = node["data"]["name"].get<std::string>();
 
     std::string type =  node["data"]["type"].get<std::string>();
-
+    std::string name = type + std::to_string(strCount);
     if(type == "String") {
-        std::string name = "str" + std::to_string(strCount);
         std::string value =  node["data"]["value"]["data"]["value"].get<std::string>();
         data += name + " db \"" + value + "\", 0xA\n";
-        code += "   lea     rax, [rel "+ name+"]\n";
-        code += "   mov     qword [rbp - "+std::to_string(stackSize+8)+"], rax\n";
-        stackSize += 8;
-        strCount++;
+        data += name+"_len equ $ - "+name+"\n";
     }
     if(type == "Number") {
         std::string value =  node["data"]["value"]["data"]["value"].get<std::string>();
-        code += "   mov     dword [rbp - "+std::to_string(stackSize+4)+"], "+value+"\n";
-        stackSize += 4;
+        data += name+" dq "+value+"\n";
     }
-    variableOffsets[varName] = stackSize;
-    var_size[varName] = static_cast<long>(node["data"]["value"]["data"]["value"].get<std::string>().size());
+    variableOffsets[varName] = name;
+    var_type[varName] = type;
+    strCount ++;
 }
 
-long Visitor::visit_variable_visit(const nlohmann::json& node) {
+void Visitor::visit_variable_visit(const nlohmann::json& node) {
     const std::string varName = node["data"]["value"].get<std::string>();
-    const long offset = variableOffsets[varName];
-    code += "   mov     rdi, qword [rbp - "+std::to_string(offset)+"]\n";
-    return var_size[varName];
+    const std::string name = variableOffsets[varName];
+    const std::string type = var_type[varName];
+
+    if(type == "String") {
+        code += "   mov     rdi,  "+name+"\n";
+        code += "   mov     r8, "+name+"_len\n";
+        lastType = 0;
+    }
+    if(type == "Number") {
+        code += "   mov     edi,  ["+name+"]\n";
+        lastType = 1;
+    }
+
 }
 
 void Visitor::visit_function_call(const nlohmann::json& node) {
@@ -111,7 +149,7 @@ void Visitor::visit_function_call(const nlohmann::json& node) {
         auto assembly = "   " + node["data"]["params"][0]["data"]["value"].get<std::string>();
         code += assembly + "\n";
     }else {
-        code += "call _" + funcName + "\n";
+        code += "   call _" + funcName + "\n";
     }
 }
 
@@ -121,13 +159,14 @@ void Visitor::generatePrintCall(const nlohmann::json& node) {
     const auto& params = node["data"]["params"];
 
     for (const auto& param : params) {
-        long length = visit(param);
-        code += "   ;Print \n"\
-        "   mov     rsi, rdi\n"\
-        "   mov     rdx, "+std::to_string(length+1)+"\n"\
-        "   mov     rax, 1\n"\
-        "   mov     rdi, 1\n"\
-        "   syscall\n";
+        visit(param);
+        switch (lastType) {
+            case 0:
+                code += "   call print\n";
+            break;
+            case 1:
+                code += "   call print_int\n";
+        }
     }
 
 }
