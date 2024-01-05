@@ -10,7 +10,6 @@ class Visitor {
 public:
     explicit Visitor(const nlohmann::json& mainCompound);
 
-    long generateAssembly(const nlohmann::json& node, std::ostream& output);
 
 private:
     std::ofstream outputFile;
@@ -23,9 +22,13 @@ private:
     int strCount = 0;
     long stackSize = 0;
     void emit(std::ostream& output, const std::string& instruction, const std::string& operand = "") const;
-    void generateVariableDeclaration(const nlohmann::json& node);
-    long generateVariableAccess(const nlohmann::json& node);
-    void generateFunctionCall(const nlohmann::json& node);
+    long visit(const nlohmann::json& node);
+    void visit_compound(const nlohmann::json& node);
+    void visit_function_defincation(const nlohmann::json& node);
+    void visit_variable_defination(const nlohmann::json& node);
+    long visit_variable_visit(const nlohmann::json& node);
+    void visit_function_call(const nlohmann::json& node);
+
     void generatePrintCall(const nlohmann::json& node);
 };
 
