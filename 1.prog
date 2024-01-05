@@ -1,5 +1,7 @@
-let i = 1;
-let name = "Arjun";
-let a = "Just test";
-
-print(a);
+function main(argc, argv[]) {
+    let name = "arjun";
+    i();
+}
+function i() {
+    print(name);
+}
