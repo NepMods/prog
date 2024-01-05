@@ -72,6 +72,9 @@ nlohmann::json Lexer::lexID() {
     if (currentToken["value"] == "let") {
         return lex_variable_defination();
     }
+    if (currentToken["value"] == "if") {
+        return lex_if_condition();
+    }
     if (currentToken["value"] == "function") {
         return lex_function_defination();
     }
@@ -89,6 +92,27 @@ nlohmann::json Lexer::lex() {
     } else {
         return lexStatement();
     }
+}
+
+nlohmann::json Lexer::lex_if_condition() {
+    nlohmann::json ret;
+    eat("TOKEN_ID");
+
+    eat("TOKEN_LPAREN");
+    auto value = lexStatement();
+    eat("TOKEN_RPAREN");
+    eat("TOKEN_LBRACE");
+    
+    std::vector<nlohmann::json> nodes;
+    while(currentToken["name"] != "TOKEN_RBRACE") {
+        auto currentNode = lex();
+        nodes.push_back(currentNode);
+    }
+    eat("TOKEN_RBRACE");
+    ret = addAST("AST_CONDITION", nodes);
+
+    ret["value"]= value;
+    return ret;
 }
 
 nlohmann::json Lexer::lex_function_defination() {

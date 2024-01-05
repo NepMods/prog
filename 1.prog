@@ -1,8 +1,7 @@
-function main(argc, argv[]) {
-    doThings();
-}
+function main(){
+    let value="Hello World!";
 
-function doThings() {
-    let text = "Hello World";
-    print(text);
+    if(100){
+        print(value);
+    }
 }

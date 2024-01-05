@@ -25,6 +25,7 @@ private:
     void emit(std::ostream& output, const std::string& instruction, const std::string& operand = "") const;
     void visit(const nlohmann::json& node);
     void visit_compound(const nlohmann::json& node);
+    void visit_condition(const nlohmann::json& node);
     void visit_function_defincation(const nlohmann::json& node);
     void visit_variable_defination(const nlohmann::json& node);
     void visit_variable_visit(const nlohmann::json& node);
