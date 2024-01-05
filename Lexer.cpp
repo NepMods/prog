@@ -37,18 +37,22 @@ nlohmann::json Lexer::lexParam() {
 nlohmann::json Lexer::lexStatement() {
     std::string value = currentToken["value"];
     std::string c_type = currentToken["name"];
-
     if (c_type == "TOKEN_ID") {
         auto ret = addAST("VAR_GET", {{"value", value}, {"type", c_type}});
         eat(currentToken["name"]);
+        if(currentToken["name"] == "TOKEN_LBRACKET") {
+            eat("TOKEN_LBRACKET");
+            eat("TOKEN_RBRACKET");
+            ret["name"] = "PARAM_ARGV";
+        }
         return ret;
     }
 
-    if(c_type == "TOKEN_STAR") {
-        eat("TOKEN_STAR");
-        eat("TOKEN_STAR");
+    if(c_type == "TOKEN_LBRACKET") {
         value = currentToken["value"];
         c_type = currentToken["name"];
+        eat("TOKEN_LBRACKET");
+        eat("TOKEN_RBRACKET");
         auto ret = addAST("PARAM_ARGV", {{"value", value}, {"type", c_type}});
         eat("TOKEN_ID");
         return ret;
@@ -99,12 +103,15 @@ nlohmann::json Lexer::lex_function_defination() {
     eat("TOKEN_RPAREN");
     eat("TOKEN_LBRACE");
     std::vector<nlohmann::json> nodes;
-
     while(currentToken["name"] != "TOKEN_RBRACE") {
         auto currentNode = lex();
         nodes.push_back(currentNode);
     }
-    ret = addAST("AST_COMPOUND", nodes);
+    eat("TOKEN_RBRACE");
+    ret = addAST("AST_FUNCDEF", nodes);
+
+    ret["value"]= name;
+
     return ret;
 }
 
