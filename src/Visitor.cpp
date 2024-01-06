@@ -97,10 +97,6 @@ void Visitor::visit_compound(const nlohmann::json& node) {
 }
 
 void Visitor::visit_condition(const nlohmann::json& node) {
-    std::ofstream outputFile("alst.json");
-    outputFile << node.dump(2);
-    outputFile.close();
-
     std::string type =  node["value"]["data"]["type"].get<std::string>();
     std::string value =  node["value"]["data"]["value"].get<std::string>();
     if(type != "Number"){
